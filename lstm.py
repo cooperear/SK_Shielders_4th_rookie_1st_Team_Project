@@ -174,21 +174,37 @@ class AnimalShelterPredictor:
             print("예측된 유기 동물 발생 지역이 없습니다.")
         else:
             for i, (org, likelihood) in enumerate(sorted_org_nms[:top_n]):
-                print(f"{i+1}. {org} (총 예측 확률: {likelihood:.4f})")
+                average_probability_percent = round((likelihood / num_prediction_days) * 100, 4) 
+                
+                print(f"{i+1}. {org} (총 예측 확률: {average_probability_percent:.4f}%)")
+                
+                predictions_to_save.append({
+                    "rank": i + 1,
+                    "org_name": org,
+                    # numpy.float32를 Python float으로 명시적 변환
+                    "predicted_probability_percent": float(average_probability_percent) 
+                })
+                
+        output_filename = "predict_1_week.json"
+        if predictions_to_save: 
+            try:
+                with open(output_filename, 'w', encoding='utf-8') as f:
+                    # default=float을 추가하여 float32를 float으로 변환하도록 json.dump에 지시
+                    json.dump(predictions_to_save, f, ensure_ascii=False, indent=4)
+                print(f"\n예측 결과가 '{output_filename}' 파일에 성공적으로 저장되었습니다.")
+            except Exception as e:
+                print(f"\n예측 결과를 파일에 저장하는 중 오류가 발생했습니다: {e}")
+        else:
+            print(f"\n저장할 예측 결과가 없습니다. '{output_filename}' 파일이 생성되지 않았습니다.")
 
         print("\n**참고:** 이 예측은 제공된 데이터의 패턴에 기반한 것이며, 실제 발생과는 차이가 있을 수 있습니다.")
         print("데이터의 양, 특성, 그리고 외부 요인이 고려되지 않았으므로, 예측의 정확도는 제한적일 수 있습니다.")
-        
-
-from datetime import datetime
-path_model =f'lstm_animal_shelter_{datetime.now().strftime("%Y%m%d_%H%M%S")}_model.h5'
-
 
 
 
 # --- 사용 예시 ---
 if __name__ == "__main__":
-    predictor = AnimalShelterPredictor(model_save_path=path_model, sequence_length=7) # 지금시간을 기준으로 h5 학습데이터 파일을 만듦
+    predictor = AnimalShelterPredictor(model_save_path='lstm_animal_shelter_20250731_201205_model.h5', sequence_length=7) # 지금시간을 기준으로 h5 학습데이터 파일을 만듦
     
     # 1. 데이터 전처리
 
