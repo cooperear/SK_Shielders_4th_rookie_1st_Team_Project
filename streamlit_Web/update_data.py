@@ -396,11 +396,22 @@ def preprocess_data(animal_df_raw, shelter_api_df_raw):
         # 컬럼 이름 변경
         rename_map = {
             'desertionNo': 'desertion_no', 'careNm': 'shelter_name', 'age': 'age',
-            'popfile': 'image_url', 'kindCd': 'species', 'specialMark': 'story',
+            'kindCd': 'species', 'specialMark': 'story',
             'sexCd': 'sex', 'noticeSdt': 'notice_date', 'processState': 'process_state',
             'careAddr': 'careAddr'
         }
         animals_df.rename(columns={k: v for k, v in rename_map.items() if k in animals_df.columns}, inplace=True)
+
+        # image_url 필드 처리: popfile1 또는 popfile2 사용
+        if 'popfile1' in animals_df.columns:
+            animals_df['image_url'] = animals_df['popfile1']
+        elif 'popfile2' in animals_df.columns:
+            animals_df['image_url'] = animals_df['popfile2']
+        else:
+            animals_df['image_url'] = None
+
+        # 불필요한 popfile1, popfile2 컬럼 제거
+        animals_df.drop(columns=['popfile1', 'popfile2'], errors='ignore', inplace=True)
 
         # 날짜 변환
         if 'notice_date' in animals_df.columns:
@@ -549,8 +560,8 @@ if __name__ == "__main__":
             # 1. 데이터 수집 기간 설정 (실제 데이터가 있는 과거 날짜로 고정)
             # NOTE: 공공데이터 API는 실제 과거 데이터만 있으므로, 2025년 등 미래 시점 조회 시 데이터가 없습니다.
             #       정상적인 테스트를 위해 실제 데이터가 있는 2024년 5월로 기간을 고정합니다.
-            bgnde_str = '20240501'
-            endde_str = '20240531'
+            bgnde_str = '20250701'
+            endde_str = '20250731'
 
             # 2. 동물 데이터 수집 (개, 고양이, 기타)
             animal_types = {'개': '417000', '고양이': '422400', '기타': '429900'}
