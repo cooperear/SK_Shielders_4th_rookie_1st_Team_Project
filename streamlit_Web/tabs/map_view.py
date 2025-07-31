@@ -48,48 +48,51 @@ def show(filtered_shelters, filtered_animals, tab_labels):
                 icon=folium.Icon(color="blue", icon="paw", prefix='fa')
             ).add_to(map_obj)
 
-    # 지도 렌더링 - rerun 시 발생하는 FileNotFoundError 무시
-    map_event = None
-    try:
-        map_event = st_folium(map_obj, width='100%', height=500)
-    except FileNotFoundError:
-        # rerun 도중에 발생하는 frontend/build/None 에러는 무시
+    # Use a column to explicitly group map and table for consistent layout
+    col1, = st.columns(1)
+    with col1:
+        # 지도 렌더링 - rerun 시 발생하는 FileNotFoundError 무시
         map_event = None
-    except Exception as e:
-        print(f"[DEBUG] st_folium 예외 발생 (무시): {e}")
-        map_event = None
+        try:
+            map_event = st_folium(map_obj, width='100%', height=500)
+        except FileNotFoundError:
+            # rerun 도중에 발생하는 frontend/build/None 에러는 무시
+            map_event = None
+        except Exception as e:
+            print(f"[DEBUG] st_folium 예외 발생 (무시): {e}")
+            map_event = None
 
-    # 클릭 이벤트 처리
-    if map_event and map_event.get("last_object_clicked_tooltip"):
-        clicked_shelter = map_event["last_object_clicked_tooltip"]
+        # 클릭 이벤트 처리
+        if map_event and map_event.get("last_object_clicked_tooltip"):
+            clicked_shelter = map_event["last_object_clicked_tooltip"]
 
-        if st.session_state.get("selected_shelter") != clicked_shelter:
-            st.session_state.selected_shelter = clicked_shelter
-            detail_tab_idx = tab_labels.index("📋 보호소 상세 현황")
-            st.session_state.active_tab_idx = detail_tab_idx
+            if st.session_state.get("selected_shelter") != clicked_shelter:
+                st.session_state.selected_shelter = clicked_shelter
+                detail_tab_idx = tab_labels.index("📋 보호소 상세 현황")
+                st.session_state.active_tab_idx = detail_tab_idx
 
-            # rerun을 안전하게 호출
-            try:
-                st.rerun()
-            except Exception as e:
-                # rerun 중 Streamlit 내부 컴포넌트가 닫히면 발생하는 에러를 무시
-                print(f"[DEBUG] rerun 예외 발생 (무시): {e}")
+                # rerun을 안전하게 호출
+                try:
+                    st.rerun()
+                except Exception as e:
+                    # rerun 중 Streamlit 내부 컴포넌트가 닫히면 발생하는 에러를 무시
+                    print(f"[DEBUG] rerun 예외 발생 (무시): {e}")
 
-    # 보호소 현황 테이블
-    st.subheader("📊 보호소별 동물 현황")
-    base_cols = ['shelter_name', 'region']
-    optional_cols = ['species', 'count', 'long_term', 'adopted']
-    display_cols = base_cols + [col for col in optional_cols if col in filtered_shelters.columns]
+        # 보호소 현황 테이블
+        st.subheader("📊 보호소별 동물 현황")
+        base_cols = ['shelter_name', 'region']
+        optional_cols = ['species', 'count', 'long_term', 'adopted']
+        display_cols = base_cols + [col for col in optional_cols if col in filtered_shelters.columns]
 
-    st.dataframe(
-        filtered_shelters[display_cols],
-        use_container_width=True,
-        column_config={
-            "shelter_name": "보호소명",
-            "region": "지역",
-            "species": "주요 품종",
-            "count": "보호 중",
-            "long_term": "장기 보호",
-            "adopted": "입양 완료"
-        }
-    )
+        st.dataframe(
+            filtered_shelters[display_cols],
+            use_container_width=True,
+            column_config={
+                "shelter_name": "보호소명",
+                "region": "지역",
+                "species": "주요 품종",
+                "count": "보호 중",
+                "long_term": "장기 보호",
+                "adopted": "입양 완료"
+            }
+        )
