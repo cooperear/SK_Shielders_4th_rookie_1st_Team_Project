@@ -71,28 +71,26 @@ def show(filtered_shelters, filtered_animals, tab_labels):
                 detail_tab_idx = tab_labels.index("📋 보호소 상세 현황")
                 st.session_state.active_tab_idx = detail_tab_idx
 
-                # rerun을 안전하게 호출
                 try:
                     st.rerun()
                 except Exception as e:
-                    # rerun 중 Streamlit 내부 컴포넌트가 닫히면 발생하는 에러를 무시
                     print(f"[DEBUG] rerun 예외 발생 (무시): {e}")
 
-        # 보호소 현황 테이블
-        st.subheader("📊 보호소별 동물 현황")
-        base_cols = ['shelter_name', 'region']
-        optional_cols = ['species', 'count', 'long_term', 'adopted']
-        display_cols = base_cols + [col for col in optional_cols if col in filtered_shelters.columns]
+    # 보호소 현황 테이블
+    st.subheader("📊 보호소별 동물 현황")
+    base_cols = ['shelter_name', 'region']
+    optional_cols = ['species', 'count', 'long_term', 'adopted']
+    display_cols = base_cols + [col for col in optional_cols if col in filtered_shelters.columns]
 
-        st.dataframe(
-            filtered_shelters[display_cols],
-            use_container_width=True,
-            column_config={
-                "shelter_name": "보호소명",
-                "region": "지역",
-                "species": "주요 품종",
-                "count": "보호 중",
-                "long_term": "장기 보호",
-                "adopted": "입양 완료"
-            }
-        )
+    st.dataframe(
+        filtered_shelters[display_cols],
+        use_container_width=True,
+        column_config={
+            "shelter_name": "보호소명",
+            "region": "지역",
+            "species": "주요 품종",
+            "count": "보호 중",
+            "long_term": "장기 보호",
+            "adopted": "입양 완료"
+        }
+    )

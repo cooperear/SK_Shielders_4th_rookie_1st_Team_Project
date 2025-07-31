@@ -78,7 +78,7 @@ def show(filtered_data):
                     # 동물의 기본 정보를 마크다운 형식으로 예쁘게 표시합니다.
                     st.markdown(f"**{animal['animal_name']}** ({animal['species']}, {animal['age']})")
                     st.markdown(f"**💖 성격:** {animal.get('personality', '정보 없음')}")
-                    st.markdown(f"**🐾 발견 이야기:** {animal.get('story', '정보 없음')}")
+                    st.markdown(f"**🐾 정보:** {animal.get('story', '정보 없음')}")
                 
                 st.markdown("---") # 각 동물 정보 사이에 구분선을 추가합니다.
         else:
