@@ -130,10 +130,11 @@ class AbandonedAnimals:
 
         df = pd.DataFrame(all_items)
         print(f"총 수집 데이터 수: {len(df)}")
-        df_cleaned = df.dropna(axis=1)
-        df_cleaned.to_json('df_cleaned.json', force_ascii=False)
+        
+        # df_cleaned = df.dropna(axis=1)
+        # df_cleaned.to_json('df_cleaned.json', force_ascii=False)
 
-        self.dataframe = df_cleaned
+        self.dataframe = df #df_cleaned
         return self.dataframe
     
     def save_dataframe_to_json(self):
