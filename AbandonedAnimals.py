@@ -9,6 +9,7 @@ repository master   :   박시훈(cooperear)
 
 file_name           :   AbandonedAnimals.py
 
+python version      :   3.13.5
 """
 
 from dotenv import load_dotenv
