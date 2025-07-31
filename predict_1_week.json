@@ -1,0 +1,27 @@
+[
+    {
+        "rank": 1,
+        "org_name": "충청북도 청주시",
+        "predicted_probability_percent": 93.060302734375
+    },
+    {
+        "rank": 2,
+        "org_name": "충청남도 천안시",
+        "predicted_probability_percent": 92.99749755859375
+    },
+    {
+        "rank": 3,
+        "org_name": "충청남도 아산시",
+        "predicted_probability_percent": 92.98770141601562
+    },
+    {
+        "rank": 4,
+        "org_name": "충청남도 서산시",
+        "predicted_probability_percent": 92.97769927978516
+    },
+    {
+        "rank": 5,
+        "org_name": "충청남도 논산시",
+        "predicted_probability_percent": 92.95770263671875
+    }
+]
