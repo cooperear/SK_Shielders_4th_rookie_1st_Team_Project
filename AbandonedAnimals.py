@@ -11,8 +11,6 @@ file_name           :   AbandonedAnimals.py
 
 """
 
-
-
 from dotenv import load_dotenv
 import os
 import requests
