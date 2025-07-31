@@ -186,7 +186,6 @@ path_model =f'lstm_animal_shelter_{datetime.now().strftime("%Y%m%d_%H%M%S")}_mod
 
 
 
-
 # --- 사용 예시 ---
 if __name__ == "__main__":
     predictor = AnimalShelterPredictor(model_save_path=path_model, sequence_length=7) # 지금시간을 기준으로 h5 학습데이터 파일을 만듦
