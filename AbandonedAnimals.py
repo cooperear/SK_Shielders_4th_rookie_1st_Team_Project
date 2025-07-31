@@ -21,6 +21,7 @@ import matplotlib.font_manager as fm
 import seaborn as sns
 
 
+
 class AbandonedAnimals:
     """
     유기 동물 데이터를 공공 API를 통해 수집하는 클래스입니다.
