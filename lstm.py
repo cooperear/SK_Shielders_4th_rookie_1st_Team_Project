@@ -215,22 +215,31 @@ class AnimalShelterPredictor:
             print("예측된 유기 동물 발생 지역이 없습니다.")
         else:
             for i, (org, likelihood) in enumerate(sorted_org_nms[:top_n]):
-                print(f"{i+1}. {org} (총 예측 확률: {likelihood:.4f})")
+                print(f"{i+1}. {org} (총 예측 확률: {((likelihood/7)*100):.4f}%)")
+                
 
         print("\n**참고:** 이 예측은 제공된 데이터의 패턴에 기반한 것이며, 실제 발생과는 차이가 있을 수 있습니다.")
         print("데이터의 양, 특성, 그리고 외부 요인이 고려되지 않았으므로, 예측의 정확도는 제한적일 수 있습니다.")
+
+
+
+
 
 # --- 사용 예시 ---
 if __name__ == "__main__":
     predictor = AnimalShelterPredictor(model_save_path='lstm_animal_shelter_model.h5', sequence_length=7)
     
     # 1. 데이터 전처리
-    if predictor.preprocess_data(file_path='data20240731_20250730.json'):
+
+
+    if predictor.preprocess_data(file_path='data20250531_20250730.json'):
         # 2. 모델 학습 또는 로드
         predictor.train_or_load_model()
         
         # 3. 다음 주 가장 발생할 수 있는 지역 5곳 예상 (일주일 단위)
         # 현재 날짜 기준 다음주 예측 (2025년 8월 1일 ~ 8월 7일)
         predictor.predict_top_n_orgnms_next_week(start_date_str="2025-08-01", end_date_str="2025-08-07", top_n=5)
+
+
     else:
         print("데이터 전처리 실패로 예측을 수행할 수 없습니다.")
