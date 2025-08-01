@@ -166,7 +166,7 @@ class AnimalShelterPredictor:
 
         sorted_org_nms = sorted(org_nm_likelihoods.items(), key=lambda item: item[1], reverse=True)
 
-        print(f"\n--- 다음 주 ({prediction_start_date.strftime('%Y-%m-%d')} ~ {prediction_end_date.strftime('%Y-%m-%d')}) 유기 동물 발생 가능성이 높은 상위 {top_n}개 지역 ---")
+        print(f"\n--- ({prediction_start_date.strftime('%Y-%m-%d')} ~ {prediction_end_date.strftime('%Y-%m-%d')}) 유기 동물 발생 가능성이 높은 상위 {top_n}개 지역 ---")
         
         predictions_to_save = []
 
