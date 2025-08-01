@@ -14,6 +14,7 @@ data 폴더 구조
                     이에따른 데이터 시각화완료(dog,cat_data_scraping.ipynb) 
 
 scraping 폴더 크롤링한 사이트 
+
     - https://www.animals.or.kr/center/adopt/5173
     
     - https://ekara.org/kams/adopt?status=%EC%9E%85%EC%96%91%EA%B0%80%EB%8A%A5
