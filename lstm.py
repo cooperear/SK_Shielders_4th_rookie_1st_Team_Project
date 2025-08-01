@@ -48,7 +48,7 @@ class AnimalShelterPredictor:
         df_happen['is_happened'] = 1
 
         self.merged_df = pd.merge(all_combinations, df_happen, on=['happenDt', 'orgNm_encoded'], how='left')
-        self.merged_df['is_happened'].fillna(0, inplace=True) 
+        self.merged_df['is_happened'] = self.merged_df['is_happened'].fillna(0)
         self.merged_df = self.merged_df.sort_values(by=['happenDt', 'orgNm_encoded']).reset_index(drop=True)
 
         self.merged_df['orgNm_scaled'] = self.scaler_org.fit_transform(self.merged_df['orgNm_encoded'].values.reshape(-1, 1))
@@ -185,7 +185,7 @@ class AnimalShelterPredictor:
                     "predicted_probability_percent": float(average_probability_percent) 
                 })
                 
-        output_filename = "predict_1_week.json"
+        output_filename = "predict_1_week_using_3_year_data.json"
         if predictions_to_save: 
             try:
                 with open(output_filename, 'w', encoding='utf-8') as f:
@@ -204,18 +204,18 @@ class AnimalShelterPredictor:
 
 # --- 사용 예시 ---
 if __name__ == "__main__":
-    predictor = AnimalShelterPredictor(model_save_path='lstm_animal_shelter_20250731_201205_model.h5', sequence_length=7) # 지금시간을 기준으로 h5 학습데이터 파일을 만듦
+    predictor = AnimalShelterPredictor(model_save_path='lstm_model_animal_shelter_20230731_to_20250730.h5', sequence_length=7) # 지금시간을 기준으로 h5 학습데이터 파일을 만듦
     
     # 1. 데이터 전처리
 
 
-    if predictor.preprocess_data(file_path='data20250531_20250730.json'):
+    if predictor.preprocess_data(file_path='data20230731_20250730.json'):
         # 2. 모델 학습 또는 로드
         predictor.train_or_load_model()
         
         # 3. 다음 주 가장 발생할 수 있는 지역 5곳 예상 (일주일 단위)
         # 현재 날짜 기준 다음주 예측 (2025년 8월 1일 ~ 8월 7일)
-        predictor.predict_top_n_orgnms_next_week(start_date_str="2025-08-01", end_date_str="2025-08-07", top_n=5)
+        predictor.predict_top_n_orgnms_next_week(start_date_str="2025-08-01", end_date_str="2025-08-30", top_n=5)
 
 
     else:
