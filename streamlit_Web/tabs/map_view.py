@@ -6,7 +6,7 @@ import sys, os
 sys.stderr = open(os.devnull, "w")
 
 def show(filtered_shelters, filtered_animals, tab_labels):
-    st.subheader("📍 보호소 지도")
+    st.subheader("🗺️ 보호소 지도")
 
     # 데이터가 없는 경우 즉시 리턴
     if filtered_shelters.empty:
