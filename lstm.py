@@ -185,7 +185,7 @@ class AnimalShelterPredictor:
                     "predicted_probability_percent": float(average_probability_percent) 
                 })
                 
-        output_filename = "predict_1_week_using_3_year_data.json"
+        output_filename = "predict_using_3_year_data.json"
         if predictions_to_save: 
             try:
                 with open(output_filename, 'w', encoding='utf-8') as f:
