@@ -213,7 +213,7 @@ if __name__ == "__main__":
         # 2. 모델 학습 또는 로드
         predictor.train_or_load_model()
         
-        # 3. 다음 주 가장 발생할 수 있는 지역 5곳 예상 (일주일 단위)
+        # 3. 다음 주 가장 발생할 수 있는 지역 5곳 예상 (한달 단위)
         # 현재 날짜 기준 다음주 예측 (2025년 8월 1일 ~ 8월 7일)
         predictor.predict_top_n_orgnms_next_week(start_date_str="2025-08-01", end_date_str="2025-08-30", top_n=5)
 
