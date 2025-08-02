@@ -20,6 +20,7 @@
 
 import streamlit as st
 from data_manager import load_data
+import pandas as pd
 
 def show():
     """
@@ -45,12 +46,36 @@ def show():
         for _, animal in favorite_animals.iterrows():
             cols = st.columns([1, 3]) # 이미지와 텍스트 영역을 나눕니다.
             with cols[0]:
-                st.image(animal["image_url"], width=150, caption=animal['animal_name'])
+                display_name = (
+                    animal.get('kind_name') if pd.notna(animal.get('kind_name')) else animal.get('notice_no', '이름 없음')
+                )
+
+                st.image(animal.get("image_url", "https://via.placeholder.com/150"), width=150, caption=display_name)
             with cols[1]:
-                st.markdown(f"**{animal['animal_name']}** ({animal['species']}, {animal['age']})")
+                age_info = animal.get('age', '정보 없음')
+                weight_info = animal.get('weight', None)
+                if pd.notna(weight_info) and weight_info != '정보 없음':
+                    st.markdown(f"**{display_name}** ({age_info}, {weight_info})")
+                else:
+                    st.markdown(f"**{display_name}** ({age_info})")
                 st.markdown(f"**🏠 보호소:** {animal['shelter_name']}")
-                st.markdown(f"**💖 성격:** {animal.get('personality', '정보 없음')}")
-                st.markdown(f"**🐾 발견 이야기:** {animal.get('story', '정보 없음')}")
+
+                sex_info = animal.get('sex', None)
+                if sex_info == 'F':
+                    sex_display = "♀️ 성별: 암컷"
+                elif sex_info == 'M':
+                    sex_display = "♂️ 성별: 수컷"
+                else:
+                    sex_display = "성별: 정보 없음"
+
+                st.markdown(f"**{sex_display}**")
+
+                st.markdown(f"**🐾 정보:** {animal.get('special_mark', '정보 없음')}")
+
+                # 발견 장소 (있을 때만 표시)
+                happen_place = animal.get('happen_place', None)
+                if pd.notna(happen_place) and happen_place != '정보 없음':
+                    st.markdown(f"**📍 발견 장소:** {happen_place}")
 
                 # --- 찜 취소 버튼 로직 ---
                 # 각 버튼의 고유성을 보장하기 위해 key에 동물의 desertion_no를 포함시킵니다.

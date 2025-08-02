@@ -50,12 +50,15 @@ def show(filtered_data):
                 # 화면을 두 개의 컬럼으로 나누어 왼쪽은 이미지, 오른쪽은 텍스트 정보를 배치합니다.
                 cols = st.columns([1, 3])
                 with cols[0]:
+                    # 표시 이름을 결정 (animal_name → kind_name → notice_no 순서)
+                    display_name = (
+                        animal.get('kind_name') if pd.notna(animal.get('kind_name')) else animal.get('notice_no', '이름 없음')
+                    )
+
                     if "image_url" in animal and pd.notna(animal["image_url"]):
-                        st.image(animal["image_url"], width=150, caption=animal.get('animal_name', '이름 없음'))
+                        st.image(animal["image_url"], width=150, caption=display_name)
                     else:
-                        st.image("https://via.placeholder.com/150?text=No+Image", 
-                                width=150, 
-                                caption=animal.get('animal_name', '이름 없음'))
+                        st.image("https://via.placeholder.com/150?text=사진+없음", width=150, caption=display_name)
                 with cols[1]:
                     # --- 찜하기 버튼 로직 ---
                     # 각 버튼은 고유한 key를 가져야 하므로, 동물의 고유 ID(desertion_no)를 사용합니다.
@@ -76,9 +79,30 @@ def show(filtered_data):
                         st.info("찜하기 기능을 사용할 수 없습니다 (유기번호 없음).")
 
                     # 동물의 기본 정보를 마크다운 형식으로 예쁘게 표시합니다.
-                    st.markdown(f"**{animal['animal_name']}** ({animal['species']}, {animal['age']})")
-                    st.markdown(f"**💖 성격:** {animal.get('personality', '정보 없음')}")
-                    st.markdown(f"**🐾 정보:** {animal.get('story', '정보 없음')}")
+                    age_info = animal.get('age', '정보 없음')
+                    weight_info = animal.get('weight', None)
+                    if pd.notna(weight_info) and weight_info != '정보 없음':
+                        st.markdown(f"**{display_name}** ({age_info}, {weight_info})")
+                    else:
+                        st.markdown(f"**{display_name}** ({age_info})")
+
+                    sex_info = animal.get('sex', None)
+
+                    if sex_info == 'F':
+                        sex_display = "♀️ 성별: 암컷"
+                    elif sex_info == 'M':
+                        sex_display = "♂️ 성별: 수컷"
+                    else:
+                        sex_display = "성별: 정보 없음"
+
+                    st.markdown(f"**{sex_display}**")
+
+                    st.markdown(f"**🐾 정보:** {animal.get('special_mark', '정보 없음')}")
+
+                    # 발견 장소 (있을 때만 표시)
+                    happen_place = animal.get('happen_place', None)
+                    if pd.notna(happen_place) and happen_place != '정보 없음':
+                        st.markdown(f"**📍 발견 장소:** {happen_place}")
                 
                 st.markdown("---") # 각 동물 정보 사이에 구분선을 추가합니다.
         else:
@@ -89,10 +113,11 @@ def show(filtered_data):
         st.info("지도에서 보호소 마커를 클릭하여 상세 정보를 확인하세요.")
 
     st.markdown("---")
-    # 사용자가 현재 필터링된 조건의 보호소 목록을 파일로 저장할 수 있도록 합니다.
-    st.download_button(
-        label="📥 현재 필터링된 보호소 목록 다운로드 (CSV)",
-        data=filtered_data.to_csv(index=False).encode('utf-8-sig'), # 한글 깨짐 방지를 위해 'utf-8-sig' 인코딩 사용
-        file_name="filtered_shelter_data.csv",
-        mime="text/csv"
-    )
+    # 사용자가 현재 선택된 보호소 동물 목록을 파일로 저장할 수 있도록 합니다.
+    if selected_shelter and not animal_details.empty:
+        st.download_button(
+            label="📥 선택된 보호소 동물 목록 다운로드 (CSV)",
+            data=animal_details.to_csv(index=False).encode('utf-8-sig'),
+            file_name=f"{selected_shelter}_animals.csv",
+            mime="text/csv"
+        )

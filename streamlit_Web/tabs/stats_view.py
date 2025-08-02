@@ -64,7 +64,7 @@ def show(filtered_data):
     # 원본 데이터를 복사하여 작업합니다 (원본 데이터 보존).
     chart_data = filtered_data.copy()
     # 'careAddr' 컬럼에서 첫 단어(시/도)를 추출하여 'sido' 컬럼을 생성합니다.
-    chart_data['sido'] = chart_data['careAddr'].str.split().str[0]
+    chart_data['sido'] = chart_data['care_addr'].str.split().str[0]
     
     # 여러 지역이 선택되어 비교가 의미 있을 때만 파이 차트를 그립니다.
     if chart_data['sido'].nunique() > 1:

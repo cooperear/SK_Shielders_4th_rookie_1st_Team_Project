@@ -45,6 +45,10 @@ crh.ComponentRequestHandler.get = safe_get
 # 웹 브라우저 탭에 표시될 제목과 페이지 전체의 레이아웃을 설정합니다.
 st.set_page_config(page_title="입양 대기 동물 분석", layout="wide")
 
+# 현재 활성화된 탭의 인덱스를 세션 상태에 저장하여, 다른 상호작용 후에도 탭이 유지되도록 합니다.
+if "active_tab_idx" not in st.session_state:
+    st.session_state.active_tab_idx = 0
+
 # 데이터베이스 연결을 확인하고, 테이블이 존재하는지 검사합니다.
 init_db()
 
@@ -67,11 +71,12 @@ end_date = st.sidebar.date_input("종료일", datetime.now()) # 기본값: 오�
 
 st.sidebar.markdown("---") # 구분선
 
-# 텍스트 검색: 특정 키워드(동물 이름 등)로 검색할 수 있는 입력창을 제공합니다.
-search_query = st.sidebar.text_input(
-    "동물 이름으로 검색",
-    placeholder="예: 초코, 하양이",
-    help="검색어와 일치하는 이름을 가진 동물을 찾습니다."
+# 축종 필터 (개/고양이/기타)
+species_filter = st.sidebar.multiselect(
+    "축종 선택",
+    options=["개", "고양이", "기타"],
+    default=["개", "고양이", "기타"],
+    help="분석할 축종을 선택하세요."
 )
 
 st.sidebar.markdown("---")
@@ -94,18 +99,9 @@ else:
     # 시/도가 '전체'일 경우, 시/군/구 선택은 비활성화됩니다.
     st.sidebar.selectbox("시군구 선택", ["전체"], disabled=True)
 
-# 축종 필터: 여러 축종을 동시에 선택하여 필터링할 수 있습니다.
-kind_list = get_kind_list() # DB에서 전체 축종 목록을 가져옵니다.
-kind_names = [k['name'] for k in kind_list]
-
-species_filter = st.sidebar.multiselect(
-    "축종 선택",
-    options=kind_names,
-    help="분석할 축종을 선택하세요. 여러 개 선택할 수 있습니다."
-)
 
 # --- 3. 데이터 필터링 로직 ---
-def get_filtered_data(start_date, end_date, sido, sigungu, species, query):
+def get_filtered_data(start_date, end_date, sido, sigungu, species):
     """
     사용자 입력(필터)에 따라 동물 및 보호소 데이터를 필터링하는 함수입니다.
     
@@ -131,24 +127,21 @@ def get_filtered_data(start_date, end_date, sido, sigungu, species, query):
     mask = (animals['notice_date'].dt.date >= start_date) & (animals['notice_date'].dt.date <= end_date)
     filtered_animals = animals[mask]
 
-    # 2. 텍스트 검색 필터링 (동물 이름)
-    if query:
-        filtered_animals = filtered_animals[filtered_animals['animal_name'].str.contains(query, case=False, na=False)]
-
-    # 3. 축종 필터링
-    if species:
-        filtered_animals = filtered_animals[filtered_animals['species'].isin(species)]
+    # 축종 필터
+    if species:  # species_filter 값이 선택된 경우
+        filtered_animals = filtered_animals[filtered_animals['upkind_name'].isin(species)]
 
     # 필터링된 동물 목록을 기반으로, 해당 동물들이 있는 보호소 목록을 구합니다.
     shelter_names_with_animals = filtered_animals['shelter_name'].unique()
     filtered_shelters = shelters[shelters['shelter_name'].isin(shelter_names_with_animals)]
 
     # 4. 지역 필터링 (보호소 주소 기준)
+    addr_col = "care_addr" if "care_addr" in filtered_shelters.columns else "careAddr"
     if sido != "전체":
-        filtered_shelters = filtered_shelters[filtered_shelters["careAddr"].str.startswith(sido, na=False)]
+        filtered_shelters = filtered_shelters[filtered_shelters[addr_col].str.startswith(sido, na=False)]
     if sigungu != "전체":
         full_region_name = f"{sido} {sigungu}"
-        filtered_shelters = filtered_shelters[filtered_shelters["careAddr"].str.startswith(full_region_name, na=False)]
+        filtered_shelters = filtered_shelters[filtered_shelters[addr_col].str.startswith(full_region_name, na=False)]
 
     # 최종적으로 필터링된 보호소에 소속된 동물들만 다시 추립니다.
     final_animal_shelters = filtered_shelters['shelter_name'].unique()
@@ -164,26 +157,53 @@ def get_filtered_data(start_date, end_date, sido, sigungu, species, query):
 
 # 위에서 정의한 함수를 호출하여 필터링된 데이터를 가져옵니다.
 final_animals, filtered_shelters, shelter_count, animal_count, long_term_count, adopted_count = get_filtered_data(
-    start_date, end_date, selected_sido_name, selected_sigungu_name, species_filter, search_query
+    start_date, end_date, selected_sido_name, selected_sigungu_name, species_filter
 )
 
 # --- 4. KPI 카드 ---
 # 계산된 주요 지표들을 `st.metric`을 사용하여 시각적으로 강조하여 보여줍니다.
-col_a, col_b, col_c, col_d = st.columns(4) # 4개의 컬럼으로 레이아웃을 나눕니다.
-col_a.metric("보호소 수", shelter_count)
-col_b.metric("보호 동물 수", animal_count)
-col_c.metric("장기 보호 동물 수", long_term_count)
-col_d.metric("입양 완료 수", adopted_count)
+col1, col2, col3, col4 = st.columns(4) # 4개의 컬럼으로 레이아웃을 나눕니다.
+with col1:
+    st.markdown(f"""
+    <div style='background-color:#f0f2f6; padding:20px; border-radius:10px; text-align:center'>
+        <div style='font-size:24px;'>🏠</div>
+        <div style='font-size:18px; font-weight:bold;'>보호소 수</div>
+        <div style='font-size:28px; color:#4CAF50;'>{shelter_count}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.markdown(f"""
+    <div style='background-color:#f0f2f6; padding:20px; border-radius:10px; text-align:center'>
+        <div style='font-size:24px;'>🐾</div>
+        <div style='font-size:18px; font-weight:bold;'>보호 동물 수</div>
+        <div style='font-size:28px; color:#2196F3;'>{animal_count}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col3:
+    st.markdown(f"""
+    <div style='background-color:#f0f2f6; padding:20px; border-radius:10px; text-align:center'>
+        <div style='font-size:24px;'>⏳</div>
+        <div style='font-size:18px; font-weight:bold;'>장기 보호 동물 수</div>
+        <div style='font-size:28px; color:#FF9800;'>{long_term_count}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col4:
+    st.markdown(f"""
+    <div style='background-color:#f0f2f6; padding:20px; border-radius:10px; text-align:center'>
+        <div style='font-size:24px;'>❤️</div>
+        <div style='font-size:18px; font-weight:bold;'>입양 완료 수</div>
+        <div style='font-size:28px; color:#E91E63;'>{adopted_count}</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 # --- 5. 탭 구성 ---
 # `st.radio`를 사용하여 탭 메뉴를 만들고, 수평으로 표시합니다.
 # 찜한 동물의 수를 탭 레이블에 동적으로 표시하여 사용자 편의성을 높입니다.
 tab_labels = ["📍 지도 & 분석", "📊 통계 차트", "📋 보호소 상세 현황", f"❤️ 찜한 동물 ({len(st.session_state.favorites)})" ]
-
-# 현재 활성화된 탭의 인덱스를 세션 상태에 저장하여, 다른 상호작용 후에도 탭이 유지되도록 합니다.
-if "active_tab_idx" not in st.session_state:
-    st.session_state.active_tab_idx = 0
 
 # 사용자가 탭을 선택하면 `active_tab_idx`가 업데이트됩니다.
 active_tab_selection = st.radio(
@@ -192,11 +212,13 @@ active_tab_selection = st.radio(
     index=st.session_state.active_tab_idx,
     key="tab_selection",
     horizontal=True,
+    label_visibility="collapsed"
 )
 
 # 선택된 탭이 변경되었는지 확인하고, 세션 상태를 업데이트합니다.
 if active_tab_selection != tab_labels[st.session_state.active_tab_idx]:
     st.session_state.active_tab_idx = tab_labels.index(active_tab_selection)
+    st.rerun()
 
 # `active_tab_idx` 값에 따라 해당 탭의 `show()` 함수를 호출하여 화면을 렌더링합니다.
 if st.session_state.active_tab_idx == 0:

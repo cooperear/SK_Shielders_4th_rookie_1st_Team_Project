@@ -33,12 +33,14 @@ def show(filtered_shelters, filtered_animals, tab_labels):
     # 마커 추가
     for _, row in filtered_shelters.iterrows():
         if pd.notna(row['lat']) and pd.notna(row['lon']):
-            image_url = shelter_image_map.get(row['shelter_name'], 'https://via.placeholder.com/150')
+            image_url = shelter_image_map.get(row['shelter_name'])
+            if not image_url or image_url == '':
+                image_url = "https://via.placeholder.com/150?text=사진+없음"
             popup_html = f"""
                 <b>{row['shelter_name']}</b><br>
                 <img src='{image_url}' width='150'><br>
                 지역: {row.get('region', '정보 없음')}<br>
-                주요 품종: {row.get('species', '정보 없음')}<br>
+                주요 품종: {row.get('kind_name', '정보 없음')}<br>
                 보호 중: {int(row.get('count', 0))} 마리
             """
             folium.Marker(
@@ -76,21 +78,21 @@ def show(filtered_shelters, filtered_animals, tab_labels):
                 except Exception as e:
                     print(f"[DEBUG] rerun 예외 발생 (무시): {e}")
 
-    # 보호소 현황 테이블
-    st.subheader("📊 보호소별 동물 현황")
-    base_cols = ['shelter_name', 'region']
-    optional_cols = ['species', 'count', 'long_term', 'adopted']
-    display_cols = base_cols + [col for col in optional_cols if col in filtered_shelters.columns]
+        # 보호소 현황 테이블
+        st.subheader("📊 보호소별 동물 현황")
+        base_cols = ['shelter_name', 'region']
+        optional_cols = ['kind_name', 'count', 'long_term', 'adopted']
+        display_cols = base_cols + [col for col in optional_cols if col in filtered_shelters.columns]
 
-    st.dataframe(
-        filtered_shelters[display_cols],
-        use_container_width=True,
-        column_config={
-            "shelter_name": "보호소명",
-            "region": "지역",
-            "species": "주요 품종",
-            "count": "보호 중",
-            "long_term": "장기 보호",
-            "adopted": "입양 완료"
-        }
-    )
+        st.dataframe(
+            filtered_shelters[display_cols],
+            use_container_width=True,
+            column_config={
+                "shelter_name": "보호소명",
+                "region": "지역",
+                "kind_name": "주요 품종",
+                "count": "보호 중",
+                "long_term": "장기 보호",
+                "adopted": "입양 완료"
+            }
+        )

@@ -382,7 +382,7 @@ def preprocess_data(animal_df_raw, shelter_api_df_raw):
     print(f"[DEBUG] preprocess_data 시작. animal_df_raw 타입: {type(animal_df_raw)}, shelter_api_df_raw 타입: {type(shelter_api_df_raw)}")
 
     # -------------------------------------
-    # 1. 동물 데이터 처리 (DataFrame/리스트 모두 대응)
+    # 1. 동물 데이터 처리
     # -------------------------------------
     if isinstance(animal_df_raw, pd.DataFrame):
         animals_df = animal_df_raw.copy()
@@ -395,14 +395,27 @@ def preprocess_data(animal_df_raw, shelter_api_df_raw):
     else:
         # 컬럼 이름 변경
         rename_map = {
-            'desertionNo': 'desertion_no', 'careNm': 'shelter_name', 'age': 'age',
-            'kindCd': 'species', 'specialMark': 'story',
-            'sexCd': 'sex', 'noticeSdt': 'notice_date', 'processState': 'process_state',
-            'careAddr': 'careAddr'
+            'desertionNo': 'desertion_no',
+            'careNm': 'shelter_name',
+            'age': 'age',
+            'kindCd': 'species',
+            'kindNm': 'kind_name',
+            'specialMark': 'special_mark',
+            'sexCd': 'sex',
+            'noticeSdt': 'notice_date',
+            'noticeNo': 'notice_no',
+            'processState': 'process_state',
+            'careAddr': 'care_addr',        # 여기 중요
+            'careTel': 'care_tel',
+            'colorCd': 'color',
+            'weight': 'weight',
+            'neuterYn': 'neuter',
+            'happenPlace': 'happen_place',
+            'upKindNm': 'upkind_name'
         }
         animals_df.rename(columns={k: v for k, v in rename_map.items() if k in animals_df.columns}, inplace=True)
 
-        # image_url 필드 처리: popfile1 또는 popfile2 사용
+        # 이미지 URL
         if 'popfile1' in animals_df.columns:
             animals_df['image_url'] = animals_df['popfile1']
         elif 'popfile2' in animals_df.columns:
@@ -410,29 +423,31 @@ def preprocess_data(animal_df_raw, shelter_api_df_raw):
         else:
             animals_df['image_url'] = None
 
-        # 불필요한 popfile1, popfile2 컬럼 제거
         animals_df.drop(columns=['popfile1', 'popfile2'], errors='ignore', inplace=True)
 
         # 날짜 변환
         if 'notice_date' in animals_df.columns:
             animals_df['notice_date'] = pd.to_datetime(animals_df['notice_date'], format='%Y%m%d', errors='coerce')
 
-        # 파생 컬럼 생성
+        # animal_name 생성
         if 'species' in animals_df.columns and 'sex' in animals_df.columns:
             animals_df['animal_name'] = animals_df['species'] + ' (' + animals_df['sex'] + ')'
+        elif 'kind_name' in animals_df.columns:
+            animals_df['animal_name'] = animals_df['kind_name']
         else:
             animals_df['animal_name'] = '정보 없음'
 
         animals_df['personality'] = '정보 없음'
 
-        # 보호소 단위로 집계
+        # 보호소 집계
         agg_dict = {
-            'careAddr_animal': ('careAddr', 'first'),
-            'region': ('careAddr', lambda x: x.iloc[0].split()[0] if x.notna().any() else '정보 없음'),
+            'care_addr_animal': ('care_addr', 'first'),
+            'region': ('care_addr', lambda x: x.iloc[0].split()[0] if x.notna().any() else '정보 없음'),
             'count': ('desertion_no', 'count'),
             'long_term': ('notice_date', lambda x: (x < pd.Timestamp.now() - pd.Timedelta(days=30)).sum()),
             'adopted': ('process_state', lambda x: (x == '종료(입양)').sum()),
-            'species': ('species', lambda x: x.value_counts().index[0] if not x.empty else '정보 없음')
+            'species': ('species', lambda x: x.value_counts().index[0] if not x.empty else '정보 없음'),
+            'kind_name': ('kind_name', lambda x: x.value_counts().index[0] if not x.empty else '정보 없음')
         }
         if 'image_url' in animals_df.columns:
             agg_dict['image_url'] = ('image_url', 'first')
@@ -452,12 +467,16 @@ def preprocess_data(animal_df_raw, shelter_api_df_raw):
 
     if not shelter_api_df_processed.empty:
         rename_cols = {
-            'careNm': 'shelter_name', 'careRegNo': 'care_reg_no', 'careAddr': 'careAddr_api',
-            'careTel': 'care_tel', 'dataStdDt': 'data_std_dt', 'lat': 'lat_api', 'lon': 'lon_api'
+            'careNm': 'shelter_name',
+            'careRegNo': 'care_reg_no',
+            'careAddr': 'care_addr_api',
+            'careTel': 'care_tel',
+            'dataStdDt': 'data_std_dt',
+            'lat': 'lat_api',
+            'lon': 'lon_api'
         }
         shelter_api_df_processed.rename(columns={k: v for k, v in rename_cols.items() if k in shelter_api_df_processed.columns}, inplace=True)
 
-        # 좌표 타입 변환
         shelter_api_df_processed['lat_api'] = pd.to_numeric(shelter_api_df_processed.get('lat_api', pd.NA), errors='coerce')
         shelter_api_df_processed['lon_api'] = pd.to_numeric(shelter_api_df_processed.get('lon_api', pd.NA), errors='coerce')
     else:
@@ -473,22 +492,21 @@ def preprocess_data(animal_df_raw, shelter_api_df_raw):
     else:
         merged_shelter_df = pd.merge(shelter_df_from_animals, shelter_api_df_processed, on='shelter_name', how='outer')
 
-    # 좌표 채우기 + 주소 결합
     if not merged_shelter_df.empty:
-        careAddr_api = merged_shelter_df['careAddr_api'] if 'careAddr_api' in merged_shelter_df.columns else pd.Series(index=merged_shelter_df.index)
-        careAddr_animal = merged_shelter_df['careAddr_animal'] if 'careAddr_animal' in merged_shelter_df.columns else pd.Series(index=merged_shelter_df.index)
-        merged_shelter_df['careAddr'] = careAddr_api.fillna(careAddr_animal)
+        care_addr_api = merged_shelter_df['care_addr_api'] if 'care_addr_api' in merged_shelter_df.columns else pd.Series(index=merged_shelter_df.index)
+        care_addr_animal = merged_shelter_df['care_addr_animal'] if 'care_addr_animal' in merged_shelter_df.columns else pd.Series(index=merged_shelter_df.index)
+        merged_shelter_df['care_addr'] = care_addr_api.fillna(care_addr_animal)
 
-        # lat/lon 초기화
+        # 좌표
         merged_shelter_df['lat'] = merged_shelter_df['lat_api'] if 'lat_api' in merged_shelter_df.columns else pd.NA
         merged_shelter_df['lon'] = merged_shelter_df['lon_api'] if 'lon_api' in merged_shelter_df.columns else pd.NA
 
-        # **중복 제거 + 캐싱**
-        cache = {}  # 주소별로 좌표 저장
+        # 주소 좌표 캐싱
+        cache = {}
         unique_addresses = merged_shelter_df.loc[
-            merged_shelter_df['careAddr'].notna() & 
-            (merged_shelter_df['lat'].isna() | merged_shelter_df['lon'].isna()), 
-            'careAddr'
+            merged_shelter_df['care_addr'].notna() &
+            (merged_shelter_df['lat'].isna() | merged_shelter_df['lon'].isna()),
+            'care_addr'
         ].unique()
 
         for addr in unique_addresses:
@@ -496,30 +514,40 @@ def preprocess_data(animal_df_raw, shelter_api_df_raw):
                 lat, lon = get_coordinates_from_address(addr)
                 cache[addr] = (lat, lon)
 
-        # 좌표 채워 넣기
         for index, row in merged_shelter_df.iterrows():
             if pd.isna(row['lat']) or pd.isna(row['lon']):
-                addr = row['careAddr']
+                addr = row['care_addr']
                 if addr in cache:
                     merged_shelter_df.at[index, 'lat'], merged_shelter_df.at[index, 'lon'] = cache[addr]
 
-        # 좌표 못 찾은 주소는 lat/lon = 0으로 기본값 처리 (선택 사항)
         merged_shelter_df['lat'] = merged_shelter_df['lat'].fillna(0)
         merged_shelter_df['lon'] = merged_shelter_df['lon'].fillna(0)
 
-        # 불필요한 컬럼 제거
-        merged_shelter_df.drop(columns=['careAddr_api', 'careAddr_animal', 'lat_api', 'lon_api'], inplace=True, errors='ignore')
+        merged_shelter_df.drop(columns=['care_addr_api', 'care_addr_animal', 'lat_api', 'lon_api'], inplace=True, errors='ignore')
+
+        # 중복 확인용 출력
+        before_count = len(merged_shelter_df)
+        duplicate_count = merged_shelter_df.duplicated(subset=['shelter_name']).sum()
+        print(f"[DEBUG] 중복 제거 전 보호소 개수: {before_count} (중복 {duplicate_count}개)")
+
+        # 보호소 이름 기준으로 중복 제거
+        merged_shelter_df.drop_duplicates(subset=['shelter_name'], inplace=True)
+
+        after_count = len(merged_shelter_df)
+        print(f"[DEBUG] 중복 제거 후 보호소 개수: {after_count}")
 
     # -------------------------------------
-    # 4. 최종 컬럼 정리 및 반환
+    # 4. 최종 컬럼 정리
     # -------------------------------------
-    # image_url 컬럼이 없으면 추가 (NaN으로 채움)
     if 'image_url' not in animals_df.columns:
         animals_df['image_url'] = None
-    
+
     final_animal_cols = [
-        'desertion_no', 'shelter_name', 'animal_name', 'species', 'age',
-        'image_url', 'personality', 'story', 'notice_date', 'sex', 'process_state'
+        'desertion_no', 'shelter_name', 'animal_name', 'species', 'kind_name', 'age',
+        'upkind_name', 'image_url', 'personality', 'special_mark', 'notice_date', 'notice_no',
+        'sex', 'neuter', 'color', 'weight', 'care_tel', 'care_addr', 
+        'happen_place', 
+        'process_state' 
     ]
     existing_final_cols = [col for col in final_animal_cols if col in animals_df.columns]
 
@@ -557,37 +585,38 @@ if __name__ == "__main__":
         if not API_KEY or 'YOUR_API_KEY' in API_KEY:
             print("!!! 경고: config.ini 파일에 실제 API 키를 입력하세요.")
         else:
-            # 1. 데이터 수집 기간 설정 (실제 데이터가 있는 과거 날짜로 고정)
-            # NOTE: 공공데이터 API는 실제 과거 데이터만 있으므로, 2025년 등 미래 시점 조회 시 데이터가 없습니다.
-            #       정상적인 테스트를 위해 실제 데이터가 있는 2024년 5월로 기간을 고정합니다.
             bgnde_str = '20250701'
             endde_str = '20250731'
 
-            # 2. 동물 데이터 수집 (개, 고양이, 기타)
+            # 동물 데이터 수집 (개, 고양이, 기타)
             animal_types = {'개': '417000', '고양이': '422400', '기타': '429900'}
             all_animals_data = []
 
             for animal_name, animal_code in animal_types.items():
                 print(f"--- {animal_name} 데이터 수집 시작 (기간: {bgnde_str} ~ {endde_str}) ---")
                 items = fetch_abandoned_animals(API_KEY, bgnde_str, endde_str, upkind=animal_code)
-                # API 호출 결과가 리스트인 경우에만 데이터를 추가합니다.
                 if isinstance(items, list):
                     all_animals_data.extend(items)
                     print(f"성공: {animal_name} 데이터 {len(items)}건 수집")
                 else:
                     print(f"경고: {animal_name} 데이터를 가져오지 못했습니다.")
 
-            # 3. 보호소 API 데이터 수집
+            # 🟢 중복 제거 (desertionNo 기준)
+            print("중복 제거 중...")
+            unique_animals = {
+                item.get('desertionNo'): item for item in all_animals_data
+            }
+            all_animals_data = list(unique_animals.values())
+            print(f"중복 제거 후 총 {len(all_animals_data)}건 남음")
+
+            # 보호소 데이터 수집
             print("--- 보호소 데이터 수집 시작 ---")
             all_shelters_data = fetch_shelters(API_KEY)
-            if isinstance(all_shelters_data, list):
-                print(f"성공: 보호소 데이터 {len(all_shelters_data)}건 수집")
-            else:
+            if not isinstance(all_shelters_data, list):
                 print("경고: 보호소 데이터를 가져오지 못했습니다.")
-                all_shelters_data = [] # 오류 방지를 위해 빈 리스트로 초기화
+                all_shelters_data = []
 
-            # 4. 데이터 전처리 및 DB 업데이트
-            # 수집된 데이터가 하나라도 있을 경우에만 전처리를 진행합니다.
+            # 전처리 및 DB 업데이트
             if all_animals_data or all_shelters_data:
                 raw_animal_df = pd.DataFrame(all_animals_data)
                 raw_shelter_api_df = pd.DataFrame(all_shelters_data)
