@@ -585,8 +585,8 @@ if __name__ == "__main__":
         if not API_KEY or 'YOUR_API_KEY' in API_KEY:
             print("!!! 경고: config.ini 파일에 실제 API 키를 입력하세요.")
         else:
-            bgnde_str = '20250701'
-            endde_str = '20250731'
+            bgnde_str = '20250501'
+            endde_str = '20250802'
 
             # 동물 데이터 수집 (개, 고양이, 기타)
             animal_types = {'개': '417000', '고양이': '422400', '기타': '429900'}
