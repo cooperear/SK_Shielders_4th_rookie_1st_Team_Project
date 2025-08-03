@@ -27,8 +27,8 @@ def show(filtered_shelters, filtered_animals, tab_labels):
     else:
         map_center = [37.5665, 126.9780]
 
-    # folium 지도 생성
-    map_obj = folium.Map(location=map_center, zoom_start=7)
+    # folium 지도 생성 (대한민국 중심)
+    map_obj = folium.Map(location=[36.5, 127.5], zoom_start=7)
 
     # 마커 추가
     for _, row in filtered_shelters.iterrows():
