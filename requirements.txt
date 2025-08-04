@@ -1,0 +1,10 @@
+streamlit
+pandas
+numpy
+plotly
+SQLAlchemy
+mysql-connector-python
+tensorflow
+requests
+scikit-learn
+joblib

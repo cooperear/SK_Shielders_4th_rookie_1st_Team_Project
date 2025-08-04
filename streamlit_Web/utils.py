@@ -17,6 +17,9 @@
 # - 특정 문자열을 정제하는 함수
 # - 복잡한 계산을 수행하는 함수 등
 # ==============================================================================
+import configparser
+import os
+
 
 def format_date(dt):
     """
@@ -36,3 +39,31 @@ def format_date(dt):
 #     """문자열에서 불필요한 공백이나 특수문자를 제거합니다."""
 #     # ... 정제 로직 ...
 #     return cleaned_text
+
+def get_db_config():
+    """
+    프로젝트 루트에 있는 config.ini에서 DB 설정 정보를 읽어 반환합니다.
+    """
+    # utils.py와 같은 레벨에 있는 streamlit_Web 폴더의 상위(프로젝트 루트) 경로
+    current_file = os.path.abspath(__file__)  
+    streamlit_web_dir = os.path.dirname(current_file)
+    project_root = os.path.dirname(streamlit_web_dir)
+
+    config_path = os.path.join(project_root, "config.ini")
+
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"config.ini 파일을 찾을 수 없습니다: {config_path}")
+
+    config = configparser.ConfigParser()
+    config.read(config_path, encoding="utf-8")
+
+    if "DB" not in config:
+        raise KeyError(f"[DB] 섹션을 config.ini에서 찾을 수 없습니다. (path={config_path})")
+
+    return {
+        "host": config["DB"]["host"],
+        "user": config["DB"]["user"],
+        "password": config["DB"]["password"],
+        "database": config["DB"]["database"],
+        "port": int(config["DB"]["port"])
+    }

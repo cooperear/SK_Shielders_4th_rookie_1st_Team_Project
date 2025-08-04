@@ -102,7 +102,7 @@ class AnimalShelterPredictorImproved:
             print(f"오류: 모델 파일 '{self.model_save_path}'을(를) 찾을 수 없습니다.")
             return False
 
-    def predict_all_orgnms_next_month(self, start_date_str="2025-08-01", end_date_str="2025-08-30"):
+    def predict_all_orgnms_next_month(self, start_date_str="2025-08-01", end_date_str="2025-08-30", progress_callback=None):
         if self.model is None:
             print("모델이 로드되지 않았습니다. 먼저 train_or_load_model()을 실행하세요.")
             return []
@@ -111,57 +111,70 @@ class AnimalShelterPredictorImproved:
             print("데이터 전처리가 완료되지 않았습니다. 먼저 preprocess_data()를 실행하세요.")
             return []
 
+        from datetime import datetime
+        import numpy as np
+
         prediction_start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
         prediction_end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
-
-        org_nm_likelihoods = []
         num_prediction_days = (prediction_end_date - prediction_start_date).days + 1
-        feature_cols = ['is_happened', 'orgNm_encoded', 'weekday', 'is_weekend', 'rolling_sum_7']
 
+        feature_cols = ['is_happened', 'orgNm_encoded', 'weekday', 'is_weekend', 'rolling_sum_7']
+        org_nm_likelihoods = []
+        all_sequences = []
+        org_id_map = []
+        org_name_map = {}
+
+        # 1. 초기 시퀀스 수집
         for org_id in self.all_org_encoded:
             org_name = self.label_encoder.inverse_transform([int(org_id)])[0]
-
-            # 미리 그룹화된 데이터에서 직접 가져오기
             recent_org_data = self._grouped_org_data.get(org_id)
+
             if recent_org_data is None or len(recent_org_data) < self.sequence_length:
                 continue
 
-            # 가장 최근 시퀀스 추출
-            current_sequence = recent_org_data[feature_cols].tail(self.sequence_length).values
-            total_probability_for_org = 0.0
+            current_seq = recent_org_data[feature_cols].tail(self.sequence_length).values
 
-            for day_offset in range(num_prediction_days):
-                input_sequence = current_sequence.reshape(1, self.sequence_length, len(feature_cols))
-                prediction_prob = self.model.predict(input_sequence, verbose=0)[0][0]
-                total_probability_for_org += prediction_prob
+            for _ in range(num_prediction_days):
+                all_sequences.append(current_seq.copy())
+                org_id_map.append(org_id)
 
-                weekday = (prediction_start_date + pd.Timedelta(days=day_offset)).weekday()
-                is_weekend = 1 if weekday >= 5 else 0
-                rolling_sum_7 = np.mean(current_sequence[:, 0]) * 7
+            org_name_map[org_id] = org_name
 
-                next_step_features = np.array([[1 if prediction_prob > 0.5 else 0,
-                                                current_sequence[-1][1],
-                                                weekday / 6,
-                                                is_weekend,
-                                                rolling_sum_7]])
-                current_sequence = np.vstack([current_sequence[1:], next_step_features])
+        if not all_sequences:
+            return []
 
-            avg_prob_percent = round((total_probability_for_org / num_prediction_days) * 100, 4)
+        # 2. 예측
+        X = np.stack(all_sequences, axis=0)  # (num_samples, seq_len, features)
+        predictions = self.model.predict(X, verbose=0).flatten()
 
+        # 3. 결과 누적
+        org_id_to_total = {org_id: 0.0 for org_id in org_name_map}
+        org_id_to_count = {org_id: 0 for org_id in org_name_map}
+
+        for i, org_id in enumerate(org_id_map):
+            org_id_to_total[org_id] += predictions[i]
+            org_id_to_count[org_id] += 1
+            if progress_callback:
+                progress_callback(i / len(org_id_map))
+
+        # 4. 평균 확률 계산
+        for org_id in org_name_map:
+            total = org_id_to_total[org_id]
+            count = org_id_to_count[org_id]
+            avg_prob_percent = round((total / count) * 100, 4) if count > 0 else 0.0
             org_nm_likelihoods.append({
-                "org_name": org_name,
+                "org_name": org_name_map[org_id],
                 "predicted_probability_percent": avg_prob_percent
             })
 
-        sorted_org_nms = sorted(org_nm_likelihoods, key=lambda item: item["predicted_probability_percent"], reverse=True)
-
-        print(f"\n--- {prediction_start_date.strftime('%Y-%m-%d')} ~ {prediction_end_date.strftime('%Y-%m-%d')} 전체 지역 예측 ---")
-        for i, pred in enumerate(sorted_org_nms):
-            print(f"{i+1}. {pred['org_name']} ({pred['predicted_probability_percent']}%)")
-        print(f"\n총 지역 개수: {len(sorted_org_nms)}")
+        # 5. 정렬
+        sorted_org_nms = sorted(
+            org_nm_likelihoods,
+            key=lambda item: item["predicted_probability_percent"],
+            reverse=True
+        )
 
         return sorted_org_nms
-
 
 if __name__ == "__main__":
     predictor = AnimalShelterPredictorImproved(

@@ -24,9 +24,10 @@ import pandas as pd
 from datetime import datetime, timedelta
 import base64
 from pathlib import Path
+import os
 
 # 각 탭(페이지)에 해당하는 화면 구성 모듈들을 임포트합니다.
-from tabs import map_view, analysis_dashboard_view, detail_view, favorites_view, prediction_view
+from tabs import map_view, analysis_dashboard_view, detail_view, favorites_view, prediction_view, web_scraping_view
 
 # 데이터 로딩 및 관리를 위한 함수들을 임포트합니다.
 from data_manager import init_db, load_data, get_sido_list, get_sigungu_list, get_kind_list
@@ -60,7 +61,9 @@ if "active_tab_idx" not in st.session_state:
     st.session_state.active_tab_idx = 0
 
 # --- 1. 페이지 설정 및 초기화 ---
-logo_path = "data/HelloHome_ICON_투명.png"
+current_dir = os.path.dirname(os.path.abspath(__file__))
+logo_path = os.path.join(current_dir, "data", "HelloHome_ICON_투명.png")
+
 logo_base64 = get_image_as_base64(logo_path)
 
 st.markdown(f"""
@@ -326,7 +329,9 @@ else:
     st.write("""<div style="height: 1rem;"></div>""", unsafe_allow_html=True) # Spacer
 
     # --- 5. 탭 구성 ---
-    tab_labels = ["📍 지도 & 분석", "📊 분석 대시보드", "📋 보호소 상세 현황", "🔮 예측", f"❤️ 찜한 동물 ({len(st.session_state.favorites)})" ]
+    tab_labels = ["📍 지도 & 분석", "📊 분석 대시보드", 
+                  "📋 보호소 상세 현황", "🔮 예측", 
+                  f"❤️ 찜한 동물 ({len(st.session_state.favorites)})", "🏵️ PIMFYVIRUS" ]
 
     def on_tab_change():
         st.session_state.active_tab_idx = tab_labels.index(st.session_state.tab_selection)
@@ -352,6 +357,8 @@ else:
         prediction_view.show()
     elif active_tab_idx == 4:
         favorites_view.show()
+    elif active_tab_idx == 5:
+        web_scraping_view.show()
 
 # --- 6. Footer ---
 st.markdown("""
