@@ -223,7 +223,8 @@ with st.sidebar.expander("🐾 축종 선택", expanded=True):
     species_filter = st.multiselect(
         "축종 선택",
         options=["개", "고양이", "기타"],
-        default=["개", "고양이", "기타"]
+        default=[],
+        help="선택하지 않으면 전체 축종이 포함됩니다."
     )
 
 # 지역 필터
