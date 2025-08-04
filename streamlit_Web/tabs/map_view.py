@@ -2,6 +2,7 @@ import streamlit as st
 import folium
 from streamlit_folium import st_folium
 import pandas as pd
+from folium.plugins import MarkerCluster
 import sys, os
 sys.stderr = open(os.devnull, "w")
 
@@ -29,13 +30,11 @@ def show(filtered_shelters, filtered_animals, tab_labels):
 
     # folium 지도 생성 (대한민국 중심)
     map_obj = folium.Map(location=[36.5, 127.5], zoom_start=7)
+    marker_cluster = MarkerCluster().add_to(map_obj)
 
-    # 마커 추가
     for _, row in filtered_shelters.iterrows():
         if pd.notna(row['lat']) and pd.notna(row['lon']):
-            image_url = shelter_image_map.get(row['shelter_name'])
-            if not image_url or image_url == '':
-                image_url = "https://via.placeholder.com/150?text=사진+없음"
+            image_url = shelter_image_map.get(row['shelter_name']) or "https://via.placeholder.com/150?text=사진+없음"
             popup_html = f"""
                 <b>{row['shelter_name']}</b><br>
                 <img src='{image_url}' width='150'><br>
@@ -48,7 +47,7 @@ def show(filtered_shelters, filtered_animals, tab_labels):
                 popup=popup_html,
                 tooltip=row['shelter_name'],
                 icon=folium.Icon(color="blue", icon="paw", prefix='fa')
-            ).add_to(map_obj)
+            ).add_to(marker_cluster)
 
     # Use a column to explicitly group map and table for consistent layout
     col1, = st.columns(1)
