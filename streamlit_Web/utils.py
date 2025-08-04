@@ -19,9 +19,27 @@
 # ==============================================================================
 import configparser
 import os
+import base64
+from datetime import datetime
 
+def get_image_as_base64(path: str) -> str | None:
+    """
+    이미지 파일을 읽어 Base64로 인코딩된 문자열을 반환합니다.
+    파일을 찾지 못하면 None을 반환합니다.
 
-def format_date(dt):
+    Args:
+        path (str): 이미지 파일 경로
+
+    Returns:
+        str | None: Base64 인코딩된 이미지 문자열 또는 None
+    """
+    try:
+        with open(path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    except FileNotFoundError:
+        return None
+
+def format_date(dt: datetime) -> str:
     """
     datetime 객체를 'YYYY-MM-DD' 형식의 문자열로 변환합니다.
 
@@ -33,19 +51,11 @@ def format_date(dt):
     """
     return dt.strftime("%Y-%m-%d")
 
-# 향후 추가될 수 있는 공통 함수 예시:
-#
-# def clean_text(text):
-#     """문자열에서 불필요한 공백이나 특수문자를 제거합니다."""
-#     # ... 정제 로직 ...
-#     return cleaned_text
-
-def get_db_config():
+def get_db_config() -> dict:
     """
     프로젝트 루트에 있는 config.ini에서 DB 설정 정보를 읽어 반환합니다.
     """
-    # utils.py와 같은 레벨에 있는 streamlit_Web 폴더의 상위(프로젝트 루트) 경로
-    current_file = os.path.abspath(__file__)  
+    current_file = os.path.abspath(__file__)
     streamlit_web_dir = os.path.dirname(current_file)
     project_root = os.path.dirname(streamlit_web_dir)
 
