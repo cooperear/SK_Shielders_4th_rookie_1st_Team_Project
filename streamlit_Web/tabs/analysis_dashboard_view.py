@@ -192,9 +192,19 @@ def show(final_animals, filtered_shelters):
                         labels=dict(x="월", y="지역명", color="발생 건수"),
                         x=[f'{i}월' for i in available_months], 
                         y=region_month_counts.index,
-                        text_auto=True, aspect="auto", color_continuous_scale='YlGnBu'
+                        text_auto=True,
+                        aspect="auto",
+                        color_continuous_scale='YlGnBu'
                     )
-                    fig_heatmap.update_layout(title_text='월별 유기동물 발생 건수 히트맵', title_x=0.5, margin=dict(t=50, b=10))
+                    fig_heatmap.update_layout(
+                        title_text='월별 유기동물 발생 건수 히트맵',
+                        title_x=0.5,
+                        margin=dict(t=80, b=10),
+                        xaxis=dict(
+                            side='top',
+                            title=None 
+                        )
+                    )
                     st.plotly_chart(fig_heatmap, use_container_width=True)
                 else:
                     st.info("히트맵을 그릴 데이터가 충분하지 않습니다.")
@@ -258,13 +268,28 @@ def show(final_animals, filtered_shelters):
         # 8. 색상에 따른 입양률
         st.markdown("#### 3. 색상에 따른 입양률")
         if 'color_group' in df.columns and df['color_group'].nunique() > 1:
+            # 평균 입양률 계산
             color_adoption_rate = df.groupby('color_group')['is_adopted'].mean().reset_index()
             color_adoption_rate['adoption_rate_pct'] = (color_adoption_rate['is_adopted'] * 100).round(1)
+
+            # 색상 이름에 '색' 붙이기 (삼색, 치즈/노랑색 등은 그대로 두되, '색' 없는 항목에만 추가)
+            color_adoption_rate['color_group'] = color_adoption_rate['color_group'].apply(
+                lambda x: x if '색' in x else f"{x}색"
+            )
+
+            # 정렬
             color_adoption_rate = color_adoption_rate.sort_values('adoption_rate_pct', ascending=False)
 
-            fig_color_bar = px.bar(color_adoption_rate, x='color_group', y='adoption_rate_pct', 
-                                   color='color_group', text='adoption_rate_pct', template='plotly_white',
-                                   labels={'color_group': '색상 계열', 'adoption_rate_pct': '입양률 (%)'})
+            # 시각화
+            fig_color_bar = px.bar(
+                color_adoption_rate,
+                x='color_group',
+                y='adoption_rate_pct',
+                color='color_group',
+                text='adoption_rate_pct',
+                template='plotly_white',
+                labels={'color_group': '색상 계열', 'adoption_rate_pct': '입양률 (%)'}
+            )
             fig_color_bar.update_traces(texttemplate='%{text}%', textposition='outside')
             fig_color_bar.update_layout(showlegend=False, margin=dict(t=10, b=10))
             st.plotly_chart(fig_color_bar, use_container_width=True)
